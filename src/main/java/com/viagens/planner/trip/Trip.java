@@ -18,7 +18,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Trip {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;

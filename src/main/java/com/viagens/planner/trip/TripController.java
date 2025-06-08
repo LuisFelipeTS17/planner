@@ -1,12 +1,17 @@
 package com.viagens.planner.trip;
 
+import com.viagens.planner.participant.Participant;
+import com.viagens.planner.participant.ParticipantCreateResponse;
+import com.viagens.planner.participant.ParticipantRequestPayload;
 import com.viagens.planner.participant.PartipantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,9 +31,16 @@ public class TripController {
 
         this.repository.save(newTrip);
 
-        this.partipantService.registerParticipantsToEvent(payload.emails_to_invite(), newTrip.getId());
+        this.partipantService.registerParticipantsToEvent(payload.emails_to_invite(), newTrip);
 
         return ResponseEntity.ok(new TripCreateResponse(newTrip.getId()));
+    }
+
+    @GetMapping("/trips/{id}participants")
+    public ResponseEntity<List<Participant>> getAllParticipants(@PathVariable UUID id) {
+        List<Participant> participantList = this.partipantService.getAllParticipantsFromEvent(id);
+
+        return ResponseEntity.ok(participantList);
     }
 
     @GetMapping("/{id}")
@@ -54,4 +66,41 @@ public class TripController {
         }
         return ResponseEntity.notFound().build();
     }
+
+
+    @GetMapping ("/{id}/confirm")
+    public ResponseEntity<Trip> updateTrip(@PathVariable UUID id){
+        Optional<Trip> trip = this.repository.findById(id);
+
+        if(trip.isPresent()){
+            Trip rawTrip = trip.get();
+            rawTrip.setIsConfirmed(true);
+
+            this.repository.save(rawTrip);
+            this.partipantService.triggerConfirmationEmailToParticipants(id);
+
+            return ResponseEntity.ok(rawTrip);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{id}/invite")
+    public ResponseEntity<ParticipantCreateResponse> inviteParticipant(@PathVariable UUID id, @RequestBody ParticipantRequestPayload payload) {
+        Optional<Trip> trip = this.repository.findById(id);
+
+        if (trip.isPresent()) {
+            Trip rawTrip = trip.get();
+
+
+            ParticipantCreateResponse participantResponse = this.partipantService.registerParticipantToEvent(payload.email(), rawTrip);
+
+            if (rawTrip.getIsConfirmed()) this.partipantService.triggerConfirmationEmailToParticipants(payload.email());
+
+            return ResponseEntity.ok(participantResponse);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+
+
 }
