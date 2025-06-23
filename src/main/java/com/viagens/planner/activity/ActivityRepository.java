@@ -1,6 +1,5 @@
-package com.viagens.planner.activities;
+package com.viagens.planner.activity;
 
-import com.viagens.planner.participant.Participant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
